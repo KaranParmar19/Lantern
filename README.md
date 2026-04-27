@@ -241,28 +241,6 @@ lantern.init({
 
 ---
 
-## 🗺 Roadmap
-
-- [x] Zero-dependency SDK with auto-flush
-- [x] Collector with BullMQ queue processing
-- [x] InfluxDB time-series storage
-- [x] JWT authentication & user management
-- [x] Real-time dashboard with Socket.IO
-- [x] Endpoint performance breakdown
-- [x] Error tracking with full context
-- [x] System health monitoring (CPU, memory)
-- [x] Alert rule configuration
-- [x] Multi-project support
-- [x] Premium landing page
-- [ ] Alert email delivery (SMTP integration)
-- [ ] Historical data views & date range queries
-- [ ] SDK publish to npm
-- [ ] Deployment guides (Docker, Railway, Vercel)
-- [ ] API documentation
-- [ ] Rate limiting & API key rotation
-
----
-
 ## 📄 License
 
 MIT — Use it, modify it, self-host it.
