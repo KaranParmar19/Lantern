@@ -1,0 +1,27 @@
+{
+  "name": "lantern-apm",
+  "version": "1.0.0",
+  "description": "Lightweight, zero-dependency APM SDK for Node.js & Express — capture request metrics, system health, and errors with 2 lines of code.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test/dummy-app.js"
+  },
+  "keywords": [
+    "apm",
+    "monitoring",
+    "performance",
+    "metrics",
+    "nodejs",
+    "express",
+    "observability",
+    "tracing"
+  ],
+  "author": "Lantern",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "express": "^4.18.2"
+  }
+}

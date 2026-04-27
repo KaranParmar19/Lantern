@@ -1,0 +1,106 @@
+# ─── Lantern APM — Docker Compose ─────────────────────────
+# Runs all infrastructure services for local development.
+# 
+# Usage:
+#   docker-compose up -d              ← start all services
+#   docker-compose up -d influxdb redis mongodb  ← infrastructure only
+#   docker-compose logs -f lantern-collector     ← watch collector logs
+#   docker-compose down               ← stop everything
+#
+# NO API KEYS NEEDED — all tokens are pre-configured for local dev.
+# ──────────────────────────────────────────────────────────
+
+version: '3.8'
+
+services:
+  # ─── InfluxDB — Time-series metrics storage ──────────────
+  influxdb:
+    image: influxdb:2.7
+    container_name: lantern-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=lantern
+      - DOCKER_INFLUXDB_INIT_PASSWORD=lantern-dev-password
+      - DOCKER_INFLUXDB_INIT_ORG=lantern
+      - DOCKER_INFLUXDB_INIT_BUCKET=metrics
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=lantern-dev-token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - lantern-network
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis — BullMQ message queue backend ────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: lantern-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - lantern-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MongoDB — User/project data storage ─────────────────
+  mongodb:
+    image: mongo:7
+    container_name: lantern-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - lantern-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Collector — Express API + BullMQ Worker ─────────────
+  lantern-collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: lantern-collector
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGODB_URI=mongodb://mongodb:27017/lantern
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=lantern-dev-token
+      - INFLUX_ORG=lantern
+      - INFLUX_BUCKET=metrics
+      - NODE_ENV=development
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - lantern-network
+
+volumes:
+  influxdb-data:
+  redis-data:
+  mongodb-data:
+
+networks:
+  lantern-network:
+    driver: bridge

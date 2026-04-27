@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Docker volumes
+influxdb-data/
+redis-data/
+mongodb-data/
