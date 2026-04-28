@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Radio } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import RPMChart from '@/components/charts/RPMChart';
 import ResponseTimeChart from '@/components/charts/ResponseTimeChart';
@@ -21,8 +22,6 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
 
-
-  // Fetch data from API
   const fetchData = useCallback(async () => {
     if (!projectId) return;
     try {
@@ -42,25 +41,17 @@ export default function OverviewPage() {
     }
   }, [projectId]);
 
-  // Initial load + polling every 30 seconds
   useEffect(() => {
-    if (!projectId) {
-      setLoading(false);
-      return;
-    }
+    if (!projectId) { setLoading(false); return; }
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [projectId, fetchData]);
 
-  // Socket.IO real-time updates
   useEffect(() => {
     if (!projectId) return;
-
     const unsubscribe = onMetricsUpdate((data) => {
       if (data.projectId !== projectId) return;
-
-      // Update stats with real-time aggregates
       setStats((prev) => {
         if (!prev) return prev;
         return {
@@ -72,37 +63,39 @@ export default function OverviewPage() {
           lastDataAt: data.timestamp,
         };
       });
-
       setLastUpdate(new Date());
-
-      // Append to RPM chart (simplified — add a new data point)
       if (data.aggregates?.requests?.total > 0) {
         setRpmData((prev) => {
-          const newPoint = {
-            time: data.timestamp,
-            value: data.aggregates.requests.total,
-          };
-          const updated = [...prev, newPoint];
-          // Keep last 30 data points
-          return updated.slice(-30);
+          const newPoint = { time: data.timestamp, value: data.aggregates.requests.total };
+          return [...prev, newPoint].slice(-30);
         });
       }
     });
-
     return () => unsubscribe();
   }, [projectId]);
 
-  // No project selected state
+  // Relative time display
+  const getRelativeTime = (date) => {
+    if (!date) return '';
+    const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (secs < 5) return 'just now';
+    if (secs < 60) return `${secs}s ago`;
+    if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+    return date.toLocaleTimeString();
+  };
+
   if (!projectId) {
     return (
-      <div>
+      <div className="page-enter">
         <div className="page-header">
-          <h1 className="page-title">Overview</h1>
+          <h1 className="page-title gradient-text">Overview</h1>
           <p className="page-subtitle">Monitor your application health at a glance</p>
         </div>
         <div className="card">
           <div className="empty-state">
-            <div className="empty-state-icon">🏮</div>
+            <div style={{ background: 'rgba(139,92,246,0.08)', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Radio size={28} color="#A78BFA" strokeWidth={1.5} />
+            </div>
             <div className="empty-state-title">No project selected</div>
             <div className="empty-state-text">
               Go to the <a href="/dashboard/projects" style={{ color: 'var(--accent-light)', fontWeight: 600 }}>Projects page</a> to create one and start monitoring.
@@ -113,41 +106,31 @@ export default function OverviewPage() {
     );
   }
 
-  // Determine warnings
   const warnings = [];
   if (stats) {
-    if (stats.errorRate > 5) {
-      warnings.push({ type: 'error', message: `⚠️ High error rate: ${stats.errorRate}% of requests are failing` });
-    }
-    if (stats.avgResponseTime > 2000) {
-      warnings.push({ type: 'warning', message: `⏱️ Slow responses: Average response time is ${stats.avgResponseTime}ms` });
-    }
+    if (stats.errorRate > 5) warnings.push({ type: 'error', message: `High error rate: ${stats.errorRate}% of requests are failing` });
+    if (stats.avgResponseTime > 2000) warnings.push({ type: 'warning', message: `Slow responses: Average response time is ${stats.avgResponseTime}ms` });
     if (stats.lastDataAt) {
-      const lastDataTime = new Date(stats.lastDataAt).getTime();
-      const now = Date.now();
-      const minutesAgo = (now - lastDataTime) / (1000 * 60);
-      if (minutesAgo > 2) {
-        warnings.push({ type: 'error', message: `📡 No data received for ${Math.floor(minutesAgo)} minutes — your app may be down` });
-      }
+      const minutesAgo = (Date.now() - new Date(stats.lastDataAt).getTime()) / (1000 * 60);
+      if (minutesAgo > 2) warnings.push({ type: 'error', message: `No data received for ${Math.floor(minutesAgo)} minutes — your app may be down` });
     }
   }
 
-  // Uptime check
   const isLive = stats?.lastDataAt
     ? (Date.now() - new Date(stats.lastDataAt).getTime()) < 2 * 60 * 1000
     : false;
 
   return (
-    <div>
+    <div className="page-enter">
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="page-title">Overview</h1>
+          <h1 className="page-title gradient-text">Overview</h1>
           <p className="page-subtitle">
             Monitor your application health at a glance
             {lastUpdate && (
-              <span style={{ marginLeft: '12px', fontSize: '12px', color: '#5a5a72' }}>
-                Last updated: {lastUpdate.toLocaleTimeString()}
+              <span style={{ marginLeft: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                Updated {getRelativeTime(lastUpdate)}
               </span>
             )}
           </p>
@@ -163,45 +146,40 @@ export default function OverviewPage() {
 
       {/* Warning Banners */}
       {warnings.map((w, i) => (
-        <div key={i} className={`warning-banner ${w.type}`}>
+        <div key={i} className={`warning-banner ${w.type}`} style={{ animationDelay: `${i * 100}ms` }}>
           {w.message}
         </div>
       ))}
 
       {/* Loading State */}
       {loading ? (
-        <div className="loading-container">
-          <div className="loading-spinner" />
+        <div>
+          <div className="stats-grid">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ animationDelay: `${i * 100}ms` }} />
+            ))}
+          </div>
+          <div className="charts-grid">
+            <div className="skeleton skeleton-chart" />
+            <div className="skeleton skeleton-chart" style={{ animationDelay: '150ms' }} />
+          </div>
         </div>
       ) : (
         <>
           {/* Stats Grid */}
           <div className="stats-grid">
+            <StatsCard label="Total Requests" value={stats?.totalRequests || 0} color="purple" stagger={1} />
             <StatsCard
-              label="Total Requests"
-              value={stats?.totalRequests?.toLocaleString() || '0'}
-              icon="📊"
-              color="purple"
+              label="Avg Response Time" value={stats?.avgResponseTime || 0} unit="ms" decimals={1}
+              color={stats?.avgResponseTime > 1000 ? 'red' : stats?.avgResponseTime > 300 ? 'yellow' : 'green'} stagger={2}
             />
             <StatsCard
-              label="Avg Response Time"
-              value={stats?.avgResponseTime?.toFixed(1) || '0'}
-              unit="ms"
-              icon="⏱️"
-              color={stats?.avgResponseTime > 1000 ? 'red' : stats?.avgResponseTime > 300 ? 'yellow' : 'green'}
+              label="Error Rate" value={stats?.errorRate || 0} unit="%" decimals={1}
+              color={stats?.errorRate > 5 ? 'red' : stats?.errorRate > 1 ? 'yellow' : 'green'} stagger={3}
             />
             <StatsCard
-              label="Error Rate"
-              value={stats?.errorRate?.toFixed(1) || '0'}
-              unit="%"
-              icon="🚨"
-              color={stats?.errorRate > 5 ? 'red' : stats?.errorRate > 1 ? 'yellow' : 'green'}
-            />
-            <StatsCard
-              label="Errors Today"
-              value={stats?.errorCount?.toLocaleString() || '0'}
-              icon="🐛"
-              color={stats?.errorCount > 0 ? 'red' : 'green'}
+              label="Errors Today" value={stats?.errorCount || 0}
+              color={stats?.errorCount > 0 ? 'red' : 'green'} stagger={4}
             />
           </div>
 

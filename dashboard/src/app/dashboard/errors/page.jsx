@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Filter } from 'lucide-react';
 import ErrorsFeed from '@/components/ErrorsFeed';
 import { getErrors } from '@/lib/api';
 import { onMetricsUpdate } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
 
-/**
- * Errors Page — /dashboard/errors
- */
 export default function ErrorsPage() {
   const { activeProject } = useAuth();
   const projectId = activeProject?._id || '';
@@ -31,42 +29,28 @@ export default function ErrorsPage() {
   }, [projectId, range, statusFilter]);
 
   useEffect(() => {
-    if (!projectId) {
-      setLoading(false);
-      return;
-    }
+    if (!projectId) { setLoading(false); return; }
     fetchData();
-    const interval = setInterval(fetchData, 15000); // Refresh more frequently for errors
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [projectId, fetchData]);
 
-  // Real-time: prepend new errors from Socket.IO
   useEffect(() => {
     if (!projectId) return;
     const unsubscribe = onMetricsUpdate((data) => {
       if (data.projectId !== projectId) return;
-
-      // Extract error metrics from the real-time update
       const newErrors = (data.requestMetrics || [])
         .filter((m) => m.isError)
         .map((m) => ({
-          timestamp: m.timestamp,
-          endpoint: m.endpoint,
-          method: m.method,
-          statusCode: String(m.statusCode),
-          responseTime: m.responseTime,
-          errorMessage: m.errorMessage || '',
-          requestId: m.requestId || '',
+          timestamp: m.timestamp, endpoint: m.endpoint, method: m.method,
+          statusCode: String(m.statusCode), responseTime: m.responseTime,
+          errorMessage: m.errorMessage || '', requestId: m.requestId || '',
         }));
-
-      if (newErrors.length > 0) {
-        setErrors((prev) => [...newErrors, ...prev].slice(0, 200));
-      }
+      if (newErrors.length > 0) setErrors((prev) => [...newErrors, ...prev].slice(0, 200));
     });
     return () => unsubscribe();
   }, [projectId]);
 
-  // Count errors by status code for display
   const errorsByStatus = errors.reduce((acc, err) => {
     const code = err.statusCode || 'unknown';
     acc[code] = (acc[code] || 0) + 1;
@@ -74,9 +58,9 @@ export default function ErrorsPage() {
   }, {});
 
   return (
-    <div>
+    <div className="page-enter">
       <div className="page-header">
-        <h1 className="page-title">Errors</h1>
+        <h1 className="page-title gradient-text">Errors</h1>
         <p className="page-subtitle">
           Real-time error feed — {errors.length} error{errors.length !== 1 ? 's' : ''} in the selected range
         </p>
@@ -84,28 +68,21 @@ export default function ErrorsPage() {
 
       {/* Error summary badges */}
       {Object.keys(errorsByStatus).length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div className="animate-in stagger-2" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
           {Object.entries(errorsByStatus)
             .sort((a, b) => b[1] - a[1])
             .map(([code, count]) => (
-              <span
-                key={code}
+              <span key={code} onClick={() => setStatusFilter(statusFilter === code ? '' : code)}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 12px',
-                  borderRadius: '100px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  fontFamily: "'SF Mono', 'Fira Code', monospace",
-                  background: parseInt(code) >= 500 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '4px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', cursor: 'pointer',
+                  background: parseInt(code) >= 500 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
                   color: parseInt(code) >= 500 ? '#EF4444' : '#F59E0B',
-                  border: `1px solid ${parseInt(code) >= 500 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                  cursor: 'pointer',
-                }}
-                onClick={() => setStatusFilter(statusFilter === code ? '' : code)}
-              >
+                  border: `1px solid ${parseInt(code) >= 500 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                  transition: 'all 0.2s',
+                  transform: statusFilter === code ? 'scale(1.05)' : 'scale(1)',
+                }}>
                 {code} × {count}
                 {statusFilter === code && ' ✕'}
               </span>
@@ -113,26 +90,19 @@ export default function ErrorsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="filter-bar">
-        <select
-          className="filter-select"
-          value={range}
-          onChange={(e) => { setRange(e.target.value); setLoading(true); }}
-          id="filter-errors-range"
-        >
+      <div className="filter-bar animate-in stagger-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <Filter size={14} />
+        </div>
+        <select className="filter-select" value={range}
+          onChange={(e) => { setRange(e.target.value); setLoading(true); }} id="filter-errors-range">
           <option value="-1h">Last 1 hour</option>
           <option value="-6h">Last 6 hours</option>
           <option value="-24h">Last 24 hours</option>
           <option value="-7d">Last 7 days</option>
         </select>
-
-        <select
-          className="filter-select"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setLoading(true); }}
-          id="filter-errors-status"
-        >
+        <select className="filter-select" value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setLoading(true); }} id="filter-errors-status">
           <option value="">All Status Codes</option>
           <option value="400">400 Bad Request</option>
           <option value="401">401 Unauthorized</option>
