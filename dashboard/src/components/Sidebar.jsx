@@ -3,27 +3,34 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import {
+  BarChart3, Link2, AlertTriangle, Monitor,
+  Bell, FolderOpen, LogOut, ChevronDown, Zap
+} from 'lucide-react';
 
-/**
- * Sidebar — Main navigation with project switcher and user menu.
- */
 export default function Sidebar({ isConnected = false }) {
   const pathname = usePathname();
   const { user, projects, activeProject, switchProject, logout } = useAuth();
 
   const navItems = [
-    { href: '/dashboard', label: 'Overview', icon: '📊' },
-    { href: '/dashboard/endpoints', label: 'Endpoints', icon: '🔗' },
-    { href: '/dashboard/errors', label: 'Errors', icon: '🚨' },
-    { href: '/dashboard/system', label: 'System Health', icon: '💻' },
+    { href: '/dashboard', label: 'Overview', icon: BarChart3 },
+    { href: '/dashboard/endpoints', label: 'Endpoints', icon: Link2 },
+    { href: '/dashboard/errors', label: 'Errors', icon: AlertTriangle },
+    { href: '/dashboard/system', label: 'System Health', icon: Monitor },
+  ];
+
+  const configItems = [
+    { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
+    { href: '/dashboard/projects', label: 'Projects', icon: FolderOpen },
   ];
 
   return (
     <aside className="sidebar">
-      {/* Logo */}
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">🏮</div>
+          <div className="sidebar-logo-icon" style={{ animation: 'breathe 3s ease-in-out infinite' }}>
+            <Zap size={20} color="#fff" />
+          </div>
           <div>
             <div className="sidebar-logo-text">Lantern</div>
             <div className="sidebar-logo-version">APM v1.0</div>
@@ -33,96 +40,117 @@ export default function Sidebar({ isConnected = false }) {
 
       {/* Project Switcher */}
       {projects.length > 0 && (
-        <div style={{ padding: '12px 12px 0' }}>
+        <div style={{ padding: '16px 16px 0' }}>
           <div style={{
-            fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px',
-            color: 'var(--text-muted)', padding: '0 12px 6px',
+            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px',
+            color: 'var(--text-muted)', padding: '0 8px 8px',
           }}>
             Project
           </div>
-          <select
-            value={activeProject?._id || ''}
-            onChange={(e) => {
-              const proj = projects.find((p) => p._id === e.target.value);
-              if (proj) switchProject(proj);
-            }}
-            style={{
-              width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)',
-              border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)',
-              fontSize: '13px', fontWeight: 500, cursor: 'pointer', outline: 'none',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {projects.map((p) => (
-              <option key={p._id} value={p._id}>{p.name}</option>
-            ))}
-          </select>
-          {/* API Key badge */}
+          <div style={{
+            position: 'relative', background: 'var(--bg-input)',
+            border: '1px solid var(--border)', borderRadius: '10px',
+            overflow: 'hidden', transition: 'border-color 0.2s',
+          }}>
+            <select
+              value={activeProject?._id || ''}
+              onChange={(e) => {
+                const proj = projects.find((p) => p._id === e.target.value);
+                if (proj) switchProject(proj);
+              }}
+              style={{
+                width: '100%', padding: '9px 32px 9px 12px',
+                background: 'transparent', border: 'none',
+                color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500,
+                cursor: 'pointer', outline: 'none',
+                fontFamily: "'Inter', sans-serif",
+                appearance: 'none',
+              }}
+            >
+              {projects.map((p) => (
+                <option key={p._id} value={p._id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
+              ))}
+            </select>
+            <div style={{
+              position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+              pointerEvents: 'none', color: 'var(--text-muted)',
+            }}>
+              <ChevronDown size={14} />
+            </div>
+          </div>
           {activeProject?.apiKey && (
             <div style={{
-              marginTop: '6px', padding: '4px 12px', fontSize: '10px',
-              fontFamily: "'SF Mono', 'Fira Code', monospace",
-              color: 'var(--text-muted)', background: 'var(--bg-glass)',
-              borderRadius: '6px', textAlign: 'center', letterSpacing: '0.3px',
+              marginTop: '6px', padding: '5px 10px', fontSize: '10px',
+              fontFamily: 'var(--font-mono)', color: 'var(--text-muted)',
+              background: 'rgba(255,255,255,0.02)', borderRadius: '6px',
+              textAlign: 'center', border: '1px solid rgba(255,255,255,0.03)',
             }}>
-              🔑 {activeProject.apiKey.substring(0, 12)}...
+              🔑 {activeProject.apiKey.substring(0, 14)}...
             </div>
           )}
         </div>
       )}
 
-      {/* Navigation */}
       <nav className="sidebar-nav">
         <div className="sidebar-section-label">Monitoring</div>
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-          >
-            <span className="sidebar-link-icon">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}
+              className={`sidebar-link ${isActive ? 'active' : ''}`}>
+              <span className="sidebar-link-icon">
+                <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
 
-        <div className="sidebar-section-label" style={{ marginTop: '12px' }}>
-          Configuration
-        </div>
-        <Link
-          href="/dashboard/alerts"
-          className={`sidebar-link ${pathname === '/dashboard/alerts' ? 'active' : ''}`}
-        >
-          <span className="sidebar-link-icon">🔔</span>
-          Alerts
-        </Link>
-        <Link
-          href="/dashboard/projects"
-          className={`sidebar-link ${pathname === '/dashboard/projects' ? 'active' : ''}`}
-        >
-          <span className="sidebar-link-icon">📁</span>
-          Projects
-        </Link>
+        <div className="sidebar-section-label" style={{ marginTop: '8px' }}>Configuration</div>
+        {configItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}
+              className={`sidebar-link ${isActive ? 'active' : ''}`}>
+              <span className="sidebar-link-icon">
+                <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* User + Connection Footer */}
       <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div className="sidebar-status">
           <span className={`status-dot ${isConnected ? '' : 'offline'}`} />
-          {isConnected ? 'Connected to collector' : 'Disconnected'}
+          <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
         </div>
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              {user.name || user.email}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div style={{
+                width: '26px', height: '26px', borderRadius: '8px',
+                background: 'var(--accent-gradient)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                boxShadow: '0 0 12px rgba(124,58,237,0.2)',
+              }}>
+                {(user.name || user.email || '?')[0].toUpperCase()}
+              </div>
+              <span style={{
+                fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {user.name || user.email}
+              </span>
             </div>
-            <button
-              onClick={logout}
-              style={{
-                background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
-                padding: '3px 8px', color: 'var(--text-muted)', fontSize: '11px', cursor: 'pointer',
-              }}
-            >
-              Logout
+            <button onClick={logout} className="btn-ghost" style={{
+              padding: '4px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px',
+            }}>
+              <LogOut size={12} /> Logout
             </button>
           </div>
         )}
