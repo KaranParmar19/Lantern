@@ -21,7 +21,7 @@ const PORT = 3001;
 // Using debug mode so we can see metrics in console
 // (no collector running yet — flush will fail, that's expected)
 lantern.init({
-  projectKey: 'ltrn_live_b44a2cb6db24c2a54ffa2c79958caf1a',
+  projectKey: 'ltrn_live_test1234567890abcdef',
   collectorURL: 'http://localhost:4000',  // collector not running yet
   flushInterval: 5000,                     // flush every 5 seconds
   systemMetricsInterval: 10000,            // system metrics every 10s (faster for testing)
