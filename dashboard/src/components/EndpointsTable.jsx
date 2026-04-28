@@ -1,20 +1,16 @@
 'use client';
 
+import { Link2 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-/**
- * EndpointsTable — Color-coded table of all API endpoints and their performance.
- * 
- * Props:
- *   endpoints - Array from GET /api/metrics/endpoints
- *   loading   - Boolean
- */
 export default function EndpointsTable({ endpoints = [], loading = false }) {
   if (loading) {
     return (
-      <div className="card">
-        <div className="loading-container">
-          <div className="loading-spinner" />
+      <div className="card animate-in">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="skeleton skeleton-row" style={{ animationDelay: `${i * 100}ms` }} />
+          ))}
         </div>
       </div>
     );
@@ -22,9 +18,11 @@ export default function EndpointsTable({ endpoints = [], loading = false }) {
 
   if (endpoints.length === 0) {
     return (
-      <div className="card">
+      <div className="card animate-in">
         <div className="empty-state">
-          <div className="empty-state-icon">🔗</div>
+          <div className="empty-state-icon" style={{ background: 'rgba(6,182,212,0.08)', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Link2 size={28} color="#22D3EE" strokeWidth={1.5} />
+          </div>
           <div className="empty-state-title">No endpoints detected</div>
           <div className="empty-state-text">
             Start sending requests to your instrumented app and endpoint data will appear here.
@@ -35,7 +33,7 @@ export default function EndpointsTable({ endpoints = [], loading = false }) {
   }
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }} id="endpoints-table">
+    <div className="card animate-in" style={{ padding: 0, overflow: 'hidden' }} id="endpoints-table">
       <div style={{ overflowX: 'auto' }}>
         <table className="data-table">
           <thead>
@@ -49,53 +47,42 @@ export default function EndpointsTable({ endpoints = [], loading = false }) {
             </tr>
           </thead>
           <tbody>
-            {endpoints.map((ep, i) => (
-              <tr key={`${ep.method}-${ep.endpoint}-${i}`}>
-                <td>
-                  <code style={{
-                    fontSize: '13px',
-                    fontFamily: "'SF Mono', 'Fira Code', monospace",
-                    background: 'rgba(255,255,255,0.04)',
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                  }}>
-                    {ep.endpoint}
-                  </code>
-                </td>
-                <td>
-                  <span className={`method-tag ${ep.method}`}>{ep.method}</span>
-                </td>
-                <td>
-                  <span style={{ 
-                    color: ep.avgResponseTime > 1000 ? '#EF4444' 
-                         : ep.avgResponseTime > 300 ? '#F59E0B' 
-                         : '#10B981',
-                    fontWeight: 600,
-                    fontFamily: "'SF Mono', 'Fira Code', monospace",
-                    fontSize: '13px',
-                  }}>
-                    {ep.avgResponseTime.toFixed(1)} ms
-                  </span>
-                </td>
-                <td>
-                  <span style={{
-                    color: ep.errorRate > 5 ? '#EF4444'
-                         : ep.errorRate > 1 ? '#F59E0B'
-                         : '#10B981',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}>
-                    {ep.errorRate.toFixed(1)}%
-                  </span>
-                </td>
-                <td className="muted" style={{ fontFamily: "'SF Mono', 'Fira Code', monospace", fontSize: '13px' }}>
-                  {ep.totalCalls.toLocaleString()}
-                </td>
-                <td>
-                  <StatusBadge status={ep.status} />
-                </td>
-              </tr>
-            ))}
+            {endpoints.map((ep, i) => {
+              const rtColor = ep.avgResponseTime > 1000 ? '#F87171' : ep.avgResponseTime > 300 ? '#FBBF24' : '#34D399';
+              const erColor = ep.errorRate > 5 ? '#F87171' : ep.errorRate > 1 ? '#FBBF24' : '#34D399';
+              return (
+                <tr key={`${ep.method}-${ep.endpoint}-${i}`} className="animate-in" style={{ animationDelay: `${i * 40}ms` }}>
+                  <td>
+                    <code style={{
+                      fontSize: '12.5px', fontFamily: 'var(--font-mono)',
+                      background: 'rgba(255,255,255,0.03)', padding: '4px 10px',
+                      borderRadius: '6px', border: '1px solid rgba(255,255,255,0.04)',
+                    }}>
+                      {ep.endpoint}
+                    </code>
+                  </td>
+                  <td><span className={`method-tag ${ep.method}`}>{ep.method}</span></td>
+                  <td>
+                    <span style={{
+                      color: rtColor, fontWeight: 600,
+                      fontFamily: 'var(--font-mono)', fontSize: '12.5px',
+                    }}>
+                      {ep.avgResponseTime.toFixed(1)}
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '2px' }}>ms</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ color: erColor, fontWeight: 600, fontSize: '12.5px' }}>
+                      {ep.errorRate.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                    {ep.totalCalls.toLocaleString()}
+                  </td>
+                  <td><StatusBadge status={ep.status} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
