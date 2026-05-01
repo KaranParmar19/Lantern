@@ -28,7 +28,7 @@ export default function Sidebar({ isConnected = false }) {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <img src="/logo.png?v=3" alt="Logo" style={{ width: '40px', height: '40px', mixBlendMode: 'screen', objectFit: 'contain', transform: 'scale(1.7)', animation: 'breathe 3s ease-in-out infinite' }} />
+          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }} className="gradient-text">Lantern</h2>
         </div>
       </div>
 
