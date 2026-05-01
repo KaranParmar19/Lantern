@@ -1,7 +1,7 @@
 'use strict';
 
 const { Worker } = require('bullmq');
-const { writeRequestMetrics, writeSystemMetrics } = require('../services/influx');
+const { writeRequestMetrics, writeSystemMetrics, flushWrites } = require('../services/influx');
 const { checkAlertRules } = require('../services/alerts');
 
 /**
@@ -48,16 +48,23 @@ function startMetricsWorker(io, redisConfig) {
       // ── 2. Write to InfluxDB ──
       if (requestMetrics.length > 0) {
         writeRequestMetrics(projectId, requestMetrics);
-        console.log(
-          `[Lantern Worker] 📝 Wrote ${requestMetrics.length} request metric(s) to InfluxDB`
-        );
       }
 
       if (systemMetrics.length > 0) {
         writeSystemMetrics(projectId, systemMetrics);
-        console.log(
-          `[Lantern Worker] 📝 Wrote ${systemMetrics.length} system metric(s) to InfluxDB`
+      }
+
+      // ── Flush InfluxDB write buffer ──
+      // writeApi batches internally; flush() sends everything and surfaces errors.
+      // If InfluxDB is down, this throws and BullMQ retries the job.
+      try {
+        await flushWrites();
+      } catch (influxErr) {
+        console.error(
+          `[Lantern Worker] ❌ InfluxDB flush FAILED for project "${projectName}" ` +
+          `(${requestMetrics.length} req + ${systemMetrics.length} sys metrics): ${influxErr.message}`
         );
+        throw influxErr; // Re-throw → BullMQ retries with exponential backoff
       }
 
       // ── 3. Calculate aggregates for real-time dashboard ──
@@ -105,10 +112,18 @@ function startMetricsWorker(io, redisConfig) {
   });
 
   worker.on('failed', (job, err) => {
-    console.error(
-      `[Lantern Worker] ❌ Job ${job?.id} failed (attempt ${job?.attemptsMade}/${job?.opts?.attempts}):`,
-      err.message
-    );
+    const isFinal = job?.attemptsMade >= (job?.opts?.attempts || 3);
+    if (isFinal) {
+      // Job has exhausted all retries — log as DEAD so it's visible
+      console.error(
+        `[Lantern Worker] 💀 DEAD JOB ${job?.id} | project: "${job?.data?.projectName}" | ` +
+        `metrics: ${job?.data?.metrics?.length || 0} | error: ${err.message}`
+      );
+    } else {
+      console.error(
+        `[Lantern Worker] ❌ Job ${job?.id} failed (attempt ${job?.attemptsMade}/${job?.opts?.attempts}): ${err.message}`
+      );
+    }
   });
 
   worker.on('error', (err) => {
@@ -122,7 +137,11 @@ function startMetricsWorker(io, redisConfig) {
 
 /**
  * Calculate aggregates from a batch of metrics.
- * These are used for real-time dashboard updates.
+ * These are used for real-time dashboard updates via Socket.IO.
+ * 
+ * SRE enhancements:
+ *   - p95 / p99 latency percentiles (replace misleading averages)
+ *   - Apdex score (Application Performance Index, T=200ms)
  * 
  * @param {Array} requestMetrics
  * @param {Array} systemMetrics
@@ -133,25 +152,60 @@ function calculateAggregates(requestMetrics, systemMetrics) {
     requests: {
       total: requestMetrics.length,
       avgResponseTime: 0,
+      p95ResponseTime: 0,
+      p99ResponseTime: 0,
       errorCount: 0,
       errorRate: 0,
+      apdex: null,
       byEndpoint: {},
     },
     system: null,
   };
 
   if (requestMetrics.length > 0) {
+    // Sort response times for percentile calculations
+    const responseTimes = requestMetrics
+      .map((m) => m.responseTime || 0)
+      .sort((a, b) => a - b);
+
+    const len = responseTimes.length;
+
     // Average response time
-    const totalTime = requestMetrics.reduce((sum, m) => sum + (m.responseTime || 0), 0);
-    aggregates.requests.avgResponseTime = parseFloat(
-      (totalTime / requestMetrics.length).toFixed(2)
+    const totalTime = responseTimes.reduce((sum, t) => sum + t, 0);
+    aggregates.requests.avgResponseTime = parseFloat((totalTime / len).toFixed(2));
+
+    // p95 — 95th percentile index
+    const p95Index = Math.ceil(len * 0.95) - 1;
+    aggregates.requests.p95ResponseTime = parseFloat(
+      (responseTimes[Math.min(p95Index, len - 1)] || 0).toFixed(2)
+    );
+
+    // p99 — 99th percentile index
+    const p99Index = Math.ceil(len * 0.99) - 1;
+    aggregates.requests.p99ResponseTime = parseFloat(
+      (responseTimes[Math.min(p99Index, len - 1)] || 0).toFixed(2)
     );
 
     // Error count and rate
     aggregates.requests.errorCount = requestMetrics.filter((m) => m.isError).length;
     aggregates.requests.errorRate = parseFloat(
-      ((aggregates.requests.errorCount / requestMetrics.length) * 100).toFixed(2)
+      ((aggregates.requests.errorCount / len) * 100).toFixed(2)
     );
+
+    // Apdex score (T = 200ms)
+    const APDEX_T = 200;
+    const satisfied = responseTimes.filter((t) => t <= APDEX_T).length;
+    const tolerating = responseTimes.filter((t) => t > APDEX_T && t <= APDEX_T * 4).length;
+    const apdexScore = parseFloat(((satisfied + tolerating / 2) / len).toFixed(3));
+
+    let apdexRating = 'Poor';
+    if (apdexScore >= 0.94) apdexRating = 'Excellent';
+    else if (apdexScore >= 0.85) apdexRating = 'Good';
+    else if (apdexScore >= 0.70) apdexRating = 'Fair';
+    else if (apdexScore >= 0.50) apdexRating = 'Poor';
+    else apdexRating = 'Unacceptable';
+
+    aggregates.requests.apdex = { score: apdexScore, rating: apdexRating };
 
     // Per-endpoint breakdown
     for (const metric of requestMetrics) {
@@ -192,3 +246,4 @@ function calculateAggregates(requestMetrics, systemMetrics) {
 }
 
 module.exports = { startMetricsWorker };
+

@@ -347,6 +347,16 @@ async function queryEndpoints(projectId, range = '-24h') {
  * @param {string} [filterStatusCode] - Optional: filter by status code
  */
 async function queryErrors(projectId, range = '-24h', filterEndpoint = null, filterStatusCode = null) {
+  // ── Sanitize inputs to prevent Flux query injection ──
+  // statusCode must be exactly 3 digits
+  if (filterStatusCode && !/^\d{3}$/.test(String(filterStatusCode))) {
+    filterStatusCode = null;
+  }
+  // endpoint: escape double-quotes and truncate to safe length
+  if (filterEndpoint) {
+    filterEndpoint = String(filterEndpoint).replace(/"/g, '\\"').substring(0, 200);
+  }
+
   let filters = `r._measurement == "requests" and r.projectId == "${projectId}"`;
   if (filterEndpoint) {
     filters += ` and r.endpoint == "${filterEndpoint}"`;
@@ -382,6 +392,170 @@ async function queryErrors(projectId, range = '-24h', filterEndpoint = null, fil
   } catch (err) {
     console.error('[Lantern] queryErrors error:', err.message);
     return [];
+  }
+}
+
+/**
+ * Latency percentiles over time (avg, p95, p99).
+ * Used by the Overview latency chart to replace misleading averages.
+ * 
+ * SRE Note: averages hide tail latencies. A p99 of 5000ms means 1 in 100
+ * users has a terrible experience even if the average looks fine.
+ * 
+ * @param {string} projectId
+ * @param {string} range - Flux duration (default: last 30 minutes)
+ */
+async function queryLatencyPercentiles(projectId, range = '-30m') {
+  const avgQuery = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> aggregateWindow(every: 1m, fn: mean, createEmpty: true)
+      |> yield(name: "avg")
+  `;
+
+  const p95Query = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> aggregateWindow(every: 1m, fn: (tables=<-, column) => tables |> quantile(q: 0.95, column: column), createEmpty: true)
+      |> yield(name: "p95")
+  `;
+
+  const p99Query = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> aggregateWindow(every: 1m, fn: (tables=<-, column) => tables |> quantile(q: 0.99, column: column), createEmpty: true)
+      |> yield(name: "p99")
+  `;
+
+  try {
+    const [avgRows, p95Rows, p99Rows] = await Promise.all([
+      _collectRows(avgQuery),
+      _collectRows(p95Query),
+      _collectRows(p99Query),
+    ]);
+
+    // Build a time-indexed map for merging
+    const merged = {};
+
+    for (const row of avgRows) {
+      const t = row._time;
+      if (!merged[t]) merged[t] = { time: t, avg: null, p95: null, p99: null };
+      merged[t].avg = row._value != null ? parseFloat(row._value.toFixed(2)) : null;
+    }
+    for (const row of p95Rows) {
+      const t = row._time;
+      if (!merged[t]) merged[t] = { time: t, avg: null, p95: null, p99: null };
+      merged[t].p95 = row._value != null ? parseFloat(row._value.toFixed(2)) : null;
+    }
+    for (const row of p99Rows) {
+      const t = row._time;
+      if (!merged[t]) merged[t] = { time: t, avg: null, p95: null, p99: null };
+      merged[t].p99 = row._value != null ? parseFloat(row._value.toFixed(2)) : null;
+    }
+
+    return Object.values(merged).sort((a, b) => new Date(a.time) - new Date(b.time));
+  } catch (err) {
+    console.error('[Lantern] queryLatencyPercentiles error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Apdex score — Application Performance Index.
+ * Provides a 0–1 score of user satisfaction based on response time.
+ * 
+ * Formula:  Apdex = (Satisfied + Tolerating / 2) / Total
+ *   Satisfied  : responseTime <= T         (target, default 200ms)
+ *   Tolerating : responseTime <= 4T        (4x target = 800ms)
+ *   Frustrated : responseTime > 4T
+ * 
+ * Score interpretation:
+ *   0.94 – 1.00 → Excellent
+ *   0.85 – 0.93 → Good
+ *   0.70 – 0.84 → Fair
+ *   0.50 – 0.69 → Poor
+ *   0.00 – 0.49 → Unacceptable
+ * 
+ * @param {string} projectId
+ * @param {string} range - Flux duration (default: last 24 hours)
+ * @param {number} [targetMs=200] - Apdex T value in milliseconds
+ */
+async function queryApdexScore(projectId, range = '-24h', targetMs = 200) {
+  const satisfiedMs = targetMs;        // <= T
+  const toleratingMs = targetMs * 4;   // <= 4T
+
+  const totalQuery = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> count()
+      |> yield(name: "total")
+  `;
+
+  const satisfiedQuery = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> filter(fn: (r) => r._value <= ${satisfiedMs})
+      |> count()
+      |> yield(name: "satisfied")
+  `;
+
+  const toleratingQuery = `
+    from(bucket: "${INFLUX_BUCKET}")
+      |> range(start: ${range})
+      |> filter(fn: (r) => r._measurement == "requests" and r.projectId == "${projectId}")
+      |> filter(fn: (r) => r._field == "responseTime")
+      |> filter(fn: (r) => r._value > ${satisfiedMs} and r._value <= ${toleratingMs})
+      |> count()
+      |> yield(name: "tolerating")
+  `;
+
+  try {
+    const [totalRows, satisfiedRows, toleratingRows] = await Promise.all([
+      _collectRows(totalQuery),
+      _collectRows(satisfiedQuery),
+      _collectRows(toleratingQuery),
+    ]);
+
+    const total = totalRows.length > 0 ? (totalRows[0]._value || 0) : 0;
+    const satisfied = satisfiedRows.length > 0 ? (satisfiedRows[0]._value || 0) : 0;
+    const tolerating = toleratingRows.length > 0 ? (toleratingRows[0]._value || 0) : 0;
+    const frustrated = Math.max(0, total - satisfied - tolerating);
+
+    const score = total > 0
+      ? parseFloat(((satisfied + tolerating / 2) / total).toFixed(3))
+      : null;
+
+    let rating = 'No data';
+    if (score !== null) {
+      if (score >= 0.94) rating = 'Excellent';
+      else if (score >= 0.85) rating = 'Good';
+      else if (score >= 0.70) rating = 'Fair';
+      else if (score >= 0.50) rating = 'Poor';
+      else rating = 'Unacceptable';
+    }
+
+    return {
+      score,
+      rating,
+      total,
+      satisfied,
+      tolerating,
+      frustrated,
+      targetMs,
+    };
+  } catch (err) {
+    console.error('[Lantern] queryApdexScore error:', err.message);
+    return { score: null, rating: 'Error', total: 0, satisfied: 0, tolerating: 0, frustrated: 0, targetMs };
   }
 }
 
@@ -459,6 +633,9 @@ module.exports = {
   queryEndpoints,
   queryErrors,
   querySystemMetrics,
+  // SRE: New metric queries
+  queryLatencyPercentiles,
+  queryApdexScore,
   // Config exports
   INFLUX_ORG,
   INFLUX_BUCKET,

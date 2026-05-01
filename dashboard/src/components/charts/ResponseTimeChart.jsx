@@ -54,7 +54,7 @@ export default function ResponseTimeChart({ data = [] }) {
             itemStyle={{ color: '#8888a4' }}
             formatter={(value) => [`${value} ms`, 'Avg Response Time']}
           />
-          <Area type="monotone" dataKey="value" name="Response Time" stroke="#06B6D4" strokeWidth={2.5} fill="url(#rtGradient)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: '#06B6D4', fill: '#0c0c14' }} />
+          <Area type="monotone" dataKey="value" name="Response Time" stroke="#06B6D4" strokeWidth={2.5} fill="url(#rtGradient)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: '#06B6D4', fill: '#0c0c14' }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

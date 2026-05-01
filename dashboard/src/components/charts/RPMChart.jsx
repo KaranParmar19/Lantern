@@ -50,7 +50,7 @@ export default function RPMChart({ data = [] }) {
             labelStyle={{ color: '#eeeef4', fontWeight: 600, marginBottom: '4px' }}
             itemStyle={{ color: '#8888a4' }}
           />
-          <Area type="monotone" dataKey="value" name="Requests" stroke="#8B5CF6" strokeWidth={2.5} fill="url(#rpmGradient)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: '#8B5CF6', fill: '#0c0c14' }} />
+          <Area type="monotone" dataKey="value" name="Requests" stroke="#8B5CF6" strokeWidth={2.5} fill="url(#rpmGradient)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: '#8B5CF6', fill: '#0c0c14' }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

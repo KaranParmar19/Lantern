@@ -56,4 +56,12 @@ const metricsQueue = new Queue('ingest-metrics', {
   },
 });
 
-module.exports = { metricsQueue, redisConfig };
+/**
+ * Returns the shared IORedis connection for reuse in other modules.
+ * Used by the ingest route for rate limiting without creating extra connections.
+ */
+function getRedisClient() {
+  return connection;
+}
+
+module.exports = { metricsQueue, redisConfig, getRedisClient };

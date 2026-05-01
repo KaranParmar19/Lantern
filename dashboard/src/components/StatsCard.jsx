@@ -1,7 +1,7 @@
 'use client';
 
 import AnimatedNumber from './AnimatedNumber';
-import { BarChart3, Clock, AlertTriangle, Bug, Cpu, HardDrive, Database, Activity } from 'lucide-react';
+import { BarChart3, Clock, AlertTriangle, Bug, Cpu, HardDrive, Database, Activity, Gauge, TrendingUp } from 'lucide-react';
 
 const ICON_MAP = {
   'total-requests': BarChart3,
@@ -12,7 +12,10 @@ const ICON_MAP = {
   'rss-memory': HardDrive,
   'cpu-usage': Activity,
   'data-points': Database,
+  'p95-latency': TrendingUp,
+  'p99-latency': Gauge,
 };
+
 
 /**
  * StatsCard — Animated metric card with Lucide icon, counting number, and accent gradient bar.
