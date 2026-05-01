@@ -22,13 +22,15 @@ const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
 // Shared Redis connection config
 // REDIS_PASSWORD and REDIS_TLS are optional — used for managed providers like Upstash.
 // Local dev (no password, no TLS) works unchanged.
+// AFTER (supports Upstash TLS in production)
 const redisConfig = {
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
-  ...(process.env.REDIS_TLS === 'true' ? { tls: {} } : {}),
-  maxRetriesPerRequest: null, // Required by BullMQ
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD || undefined,
+  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+  maxRetriesPerRequest: null,
 };
+
 
 // Create a shared IORedis connection for the queue
 const connection = new IORedis(redisConfig);
