@@ -39,7 +39,8 @@ export default function LoginPage() {
         background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(6,182,212,0.04) 100%)',
         borderRight: '1px solid var(--border)', position: 'relative', overflow: 'hidden', padding: '60px',
       }}>
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
           backgroundImage: 'linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)',
           backgroundSize: '50px 50px',
         }} />
@@ -47,16 +48,13 @@ export default function LoginPage() {
         <div className="orb orb-2" style={{ bottom: '10%', right: '15%' }} />
 
         <div style={{ position: 'relative', textAlign: 'center', maxWidth: '360px' }}>
-          <div style={{
-            width: '64px', height: '64px', background: 'var(--accent-gradient)',
-            borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px', animation: 'breathe 3s ease-in-out infinite',
-            boxShadow: '0 0 40px rgba(124,58,237,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-          }}>
-            <Zap size={30} color="#fff" />
-          </div>
+          <img src="/logo.png?v=3" alt="Logo" style={{
+            width: '80px', height: '80px', margin: '0 auto 24px',
+            mixBlendMode: 'screen', objectFit: 'contain', transform: 'scale(1.7)',
+            animation: 'breathe 3s ease-in-out infinite'
+          }} />
           <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '12px' }} className="gradient-text">
-            Lantern APM
+            APM
           </h2>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
             Lightweight, self-hosted performance monitoring for Node.js applications.

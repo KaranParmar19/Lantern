@@ -28,13 +28,7 @@ export default function Sidebar({ isConnected = false }) {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon" style={{ animation: 'breathe 3s ease-in-out infinite' }}>
-            <Zap size={20} color="#fff" />
-          </div>
-          <div>
-            <div className="sidebar-logo-text">Lantern</div>
-            <div className="sidebar-logo-version">APM v1.0</div>
-          </div>
+          <img src="/logo.png?v=3" alt="Logo" style={{ width: '40px', height: '40px', mixBlendMode: 'screen', objectFit: 'contain', transform: 'scale(1.7)', animation: 'breathe 3s ease-in-out infinite' }} />
         </div>
       </div>
 

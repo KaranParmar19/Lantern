@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/screenshots/hero-section.png" alt="Lantern APM — Hero" width="100%" />
+  <img src="dashboard/public/logo.png" alt="Lantern APM Logo" width="150" />
 </p>
 
-<h1 align="center">🏮 Lantern APM</h1>
+<h1 align="center">Lantern APM</h1>
 
 <p align="center">
   <strong>Lightweight, self-hosted Application Performance Monitoring for Node.js</strong>
