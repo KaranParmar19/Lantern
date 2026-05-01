@@ -3,15 +3,19 @@
 const express = require('express');
 const AlertRule = require('../models/AlertRule');
 const AlertHistory = require('../models/AlertHistory');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 /**
  * Alerts API Routes
- * 
+ *
  * CRUD operations for alert rules + alert history.
- * All routes require ?projectId= query param (JWT auth added in Phase 5).
+ * All routes require a valid JWT and ?projectId= query param.
  */
+
+// ── Auth guard — all alert routes require a valid JWT ──
+router.use(authMiddleware);
 
 // ── Middleware: require projectId ──
 router.use((req, res, next) => {

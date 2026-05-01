@@ -2,6 +2,24 @@
 
 require('dotenv').config();
 
+// ─── Fail-fast env validation ───────────────────────────────────────
+// If a critical env var is missing, crash immediately with a clear
+// message rather than silently failing 3 hours into a production run.
+const REQUIRED_ENV = ['MONGODB_URI', 'REDIS_HOST', 'INFLUX_URL', 'INFLUX_TOKEN', 'JWT_SECRET'];
+const MISSING_ENV = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (MISSING_ENV.length > 0) {
+  console.error('\n[Lantern] ❌ FATAL: Missing required environment variables:');
+  MISSING_ENV.forEach((k) => console.error(`  - ${k}`));
+  console.error('[Lantern] Set them in .env or your deployment dashboard, then restart.\n');
+  process.exit(1);
+}
+if (process.env.JWT_SECRET === 'lantern-dev-secret-change-in-production') {
+  console.error('\n[Lantern] ❌ FATAL: JWT_SECRET is still the default insecure dev value.');
+  console.error('[Lantern] Generate a strong secret: openssl rand -base64 32');
+  console.error('[Lantern] Set it as JWT_SECRET in your .env or deployment env vars.\n');
+  process.exit(1);
+}
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -22,15 +40,22 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/lanter
 // ─── Express App ───────────────────────────────────────────
 const app = express();
 
-// Parse JSON bodies (needed for /ingest route)
-app.use(express.json({ limit: '5mb' }));
+// Parse JSON bodies
+// SDK MAX_BATCH_SIZE = 2000 metrics × ~300 bytes avg = ~600KB max.
+// 1mb gives safe headroom while still blocking oversized malicious payloads.
+// (The original 5mb was excessive; 1mb is the correct security/compatibility balance.)
+app.use(express.json({ limit: '1mb' }));
 
-// CORS — allow dashboard to connect (port 3000)
+// CORS — allow dashboard to connect
+// DASHBOARD_URL must be set in production (e.g. https://lantern.vercel.app)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.DASHBOARD_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ],
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -59,10 +84,7 @@ const server = http.createServer(app);
 // ─── Socket.IO ─────────────────────────────────────────────
 const io = new SocketIOServer(server, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
+    origin: allowedOrigins, // Same list as Express CORS — includes DASHBOARD_URL in production
     methods: ['GET', 'POST'],
   },
 });
@@ -103,6 +125,17 @@ async function start() {
     });
 
     // 3. Start HTTP server
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`\n[Lantern] ❌ Port ${PORT} is already in use.`);
+        console.error(`[Lantern]    Run this to free it:  npx kill-port ${PORT}`);
+        console.error(`[Lantern]    Or on Windows:  Get-NetTCPConnection -LocalPort ${PORT} | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\n`);
+      } else {
+        console.error('[Lantern] ❌ Server error:', err.message);
+      }
+      process.exit(1);
+    });
+
     server.listen(PORT, () => {
       console.log('\n' + '═'.repeat(60));
       console.log('  🏮 Lantern APM — Collector Server');

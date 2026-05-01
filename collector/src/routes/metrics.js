@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const authMiddleware = require('../middleware/authMiddleware');
 const {
   queryOverviewStats,
   queryRequestsPerMinute,
@@ -8,19 +9,22 @@ const {
   queryEndpoints,
   queryErrors,
   querySystemMetrics,
+  queryLatencyPercentiles,
+  queryApdexScore,
 } = require('../services/influx');
 
 const router = express.Router();
 
 /**
  * Dashboard Metrics API Routes
- * 
- * These endpoints query InfluxDB and return JSON for the dashboard.
- * All routes require a `projectId` query parameter.
- * 
- * For Phase 3 there is no JWT auth — these are open.
- * Phase 5 will add JWT middleware to protect them.
+ *
+ * All routes are protected by JWT (authMiddleware).
+ * Clients must send: Authorization: Bearer <token>
+ * All routes also require a `projectId` query parameter.
  */
+
+// ── Auth guard — all metrics routes require a valid JWT ──
+router.use(authMiddleware);
 
 // ── Middleware: require projectId ──
 router.use((req, res, next) => {
@@ -130,6 +134,45 @@ router.get('/system', async (req, res) => {
   } catch (err) {
     console.error('[Lantern] /api/metrics/system error:', err.message);
     res.status(500).json({ error: 'Failed to query system metrics' });
+  }
+});
+
+/**
+ * GET /api/metrics/latency-percentiles?projectId=xxx&range=-30m
+ * 
+ * SRE metric: returns avg, p95, p99 latency per minute.
+ * Replace misleading averages with tail latency visibility.
+ * Returns: array of { time, avg, p95, p99 }
+ */
+router.get('/latency-percentiles', async (req, res) => {
+  try {
+    const range = req.query.range || '-30m';
+    const data = await queryLatencyPercentiles(req.projectId, range);
+    res.json(data);
+  } catch (err) {
+    console.error('[Lantern] /api/metrics/latency-percentiles error:', err.message);
+    res.status(500).json({ error: 'Failed to query latency percentiles' });
+  }
+});
+
+/**
+ * GET /api/metrics/apdex?projectId=xxx&range=-24h&targetMs=200
+ * 
+ * SRE metric: Apdex score (Application Performance Index).
+ * Returns: { score, rating, total, satisfied, tolerating, frustrated, targetMs }
+ * 
+ * score: 0-1 (higher is better)
+ * rating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Unacceptable'
+ */
+router.get('/apdex', async (req, res) => {
+  try {
+    const range = req.query.range || '-24h';
+    const targetMs = parseInt(req.query.targetMs || '200', 10);
+    const data = await queryApdexScore(req.projectId, range, targetMs);
+    res.json(data);
+  } catch (err) {
+    console.error('[Lantern] /api/metrics/apdex error:', err.message);
+    res.status(500).json({ error: 'Failed to query Apdex score' });
   }
 });
 

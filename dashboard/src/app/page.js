@@ -187,7 +187,7 @@ export default function LandingPage() {
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '20px 40px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(6,6,11,0.7)',
-        opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(-10px)', transition: 'all 0.6s ease-out',
+        opacity: 1, transform: 'translateY(0)', transition: 'all 0.6s ease-out',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/logo.png?v=3" alt="Logo" style={{ width: '44px', height: '44px', mixBlendMode: 'screen', objectFit: 'contain', transform: 'scale(1.7)' }} />
@@ -213,7 +213,7 @@ export default function LandingPage() {
       <section ref={heroRef} style={{
         position: 'relative', zIndex: 1, textAlign: 'center',
         padding: '180px 32px 100px', margin: '0 auto',
-        opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s',
+        opacity: 1, transform: 'translateY(0)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s',
       }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -244,12 +244,12 @@ export default function LandingPage() {
           }}>
             Start Monitoring <ArrowRight size={18} />
           </Link>
-          <a href="https://github.com" target="_blank" rel="noopener" style={{
+          <a href="https://github.com/KaranParmar19/Lantern" target="_blank" rel="noopener" style={{
             padding: '16px 36px', borderRadius: '12px', fontSize: '16px', fontWeight: 600,
             background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
             display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s',
           }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
-            <Terminal size={18} /> View Documentation
+            <Terminal size={18} /> View on GitHub
           </a>
         </div>
 
@@ -259,7 +259,7 @@ export default function LandingPage() {
       {/* Bento Grid Features */}
       <section id="features" ref={bentoRef} style={{
         position: 'relative', zIndex: 1, padding: '120px 32px', maxWidth: '1280px', margin: '0 auto',
-        opacity: bentoVisible ? 1 : 0, transform: bentoVisible ? 'translateY(0)' : 'translateY(40px)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
+        opacity: 1, transform: 'translateY(0)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '80px' }}>
           <h2 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '16px' }}>
@@ -276,7 +276,7 @@ export default function LandingPage() {
           gridAutoRows: 'minmax(300px, auto)'
         }}>
           {/* Card 1 - Large */}
-          <div style={{ gridColumn: '1 / -1', '@media (min-width: 1024px)': { gridColumn: 'span 2' }, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '48px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="bento-large" style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '48px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)', filter: 'blur(40px)' }} />
             <Activity size={32} color="#A78BFA" style={{ marginBottom: '24px' }} />
             <h3 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-0.02em' }}>Sub-millisecond precision</h3>
@@ -304,7 +304,7 @@ export default function LandingPage() {
         position: 'relative', zIndex: 1, padding: '120px 32px', background: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)',
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '80px', alignItems: 'center' }}>
-          <div style={{ opacity: codeVisible ? 1 : 0, transform: codeVisible ? 'translateX(0)' : 'translateX(-40px)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)' }}>
+          <div style={{ opacity: 1, transform: 'translateX(0)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)' }}>
             <h2 style={{ fontSize: '40px', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '24px' }}>Integrates in seconds.</h2>
             <p style={{ fontSize: '18px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '32px' }}>
               No massive configuration files. No agents to install on your host. Simply drop the SDK into your Express app and start streaming metrics immediately.
@@ -326,7 +326,7 @@ export default function LandingPage() {
           <div style={{
             background: '#0d0d12', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-            opacity: codeVisible ? 1 : 0, transform: codeVisible ? 'translateX(0)' : 'translateX(40px)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s'
+            opacity: 1, transform: 'translateX(0)', transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s'
           }}>
             <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.02)' }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444' }} />
@@ -357,7 +357,7 @@ export default function LandingPage() {
       }}>
         <div style={{
           maxWidth: '800px', margin: '0 auto',
-          opacity: ctaVisible ? 1 : 0, transform: ctaVisible ? 'scale(1)' : 'scale(0.95)', transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
+          opacity: 1, transform: 'scale(1)', transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
         }}>
           <h2 style={{ fontSize: 'clamp(40px, 6vw, 64px)', fontWeight: 800, letterSpacing: '-0.04em', marginBottom: '24px' }}>
             Stop guessing.<br />Start monitoring.
@@ -383,9 +383,8 @@ export default function LandingPage() {
             <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.5px' }}>Lantern APM</span>
           </div>
           <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-            <a href="#" style={{ transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = 'var(--text-secondary)'}>GitHub</a>
-            <a href="#" style={{ transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = 'var(--text-secondary)'}>Documentation</a>
-            <a href="#" style={{ transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = 'var(--text-secondary)'}>Twitter</a>
+            <a href="https://github.com/KaranParmar19/Lantern" target="_blank" rel="noopener" style={{ transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = 'var(--text-secondary)'}>GitHub</a>
+            <a href="https://github.com/KaranParmar19/Lantern#readme" target="_blank" rel="noopener" style={{ transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = 'var(--text-secondary)'}>Documentation</a>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '24px' }}>
             © {new Date().getFullYear()} Lantern APM. Open-source monitoring for Node.js.

@@ -438,12 +438,21 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 1200px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-grid { grid-template-columns: 1fr; }
+  /* SRE percentile row: collapse to 2-col with Apdex full-width */
+  .sre-row { grid-template-columns: repeat(2, 1fr) !important; }
+  .sre-row .apdex-span { grid-column: span 2 !important; }
+}
+@media (min-width: 1024px) {
+  .bento-large { grid-column: span 2 !important; }
 }
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .main-content { margin-left: 0; padding: 20px 16px; }
   .stats-grid { grid-template-columns: 1fr; }
+  .sre-row { grid-template-columns: 1fr !important; }
+  .sre-row .apdex-span { grid-column: unset !important; }
 }
+
 
 /* ─── Recharts Tooltip ───────────────────────────────────────── */
 .recharts-default-tooltip {

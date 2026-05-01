@@ -5,10 +5,10 @@ node_modules/
 .next/
 out/
 
-# Environment files
+# Environment files — NEVER commit secrets
 .env
-.env.local
-.env.production
+.env.*
+!.env.example  # .env.example IS committed — it's the template with no real secrets
 
 # OS files
 .DS_Store

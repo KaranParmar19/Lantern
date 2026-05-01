@@ -26,6 +26,7 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=lantern
       - DOCKER_INFLUXDB_INIT_BUCKET=metrics
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=lantern-dev-token
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d  # Prevent disk from growing forever
     volumes:
       - influxdb-data:/var/lib/influxdb2
     networks:
@@ -95,6 +96,12 @@ services:
         condition: service_healthy
     networks:
       - lantern-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   influxdb-data:
