@@ -29,10 +29,25 @@ async function fetchAPI(path, params = {}) {
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(url.toString(), {
-    headers,
-    cache: 'no-store',
-  });
+  let response;
+  try {
+    response = await fetch(url.toString(), {
+      headers,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000), // Never hang forever — 10s max
+    });
+  } catch (err) {
+    // TypeError = network error (server down, CORS, DNS fail)
+    // AbortError = our timeout fired
+    const isTimeout = err.name === 'AbortError' || err.name === 'TimeoutError';
+    const networkErr = new Error(
+      isTimeout
+        ? 'Collector did not respond in time. It may be restarting.'
+        : 'Cannot reach collector. Check that it is running.'
+    );
+    networkErr.isNetworkError = true;
+    throw networkErr;
+  }
 
   if (response.status === 401) {
     // Token expired or invalid — clear and redirect
@@ -65,10 +80,26 @@ async function mutateAPI(path, method = 'POST', body = null, params = {}) {
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const options = { method, headers };
+  const options = {
+    method,
+    headers,
+    signal: AbortSignal.timeout(10000), // Never hang forever — 10s max
+  };
   if (body) options.body = JSON.stringify(body);
 
-  const response = await fetch(url.toString(), options);
+  let response;
+  try {
+    response = await fetch(url.toString(), options);
+  } catch (err) {
+    const isTimeout = err.name === 'AbortError' || err.name === 'TimeoutError';
+    const networkErr = new Error(
+      isTimeout
+        ? 'Request timed out. The server may be temporarily unavailable.'
+        : 'Cannot reach server. Please check your connection and try again.'
+    );
+    networkErr.isNetworkError = true;
+    throw networkErr;
+  }
 
   if (response.status === 401 && typeof window !== 'undefined') {
     localStorage.removeItem('lantern_token');
@@ -85,6 +116,7 @@ async function mutateAPI(path, method = 'POST', body = null, params = {}) {
 }
 
 
+
 export function getOverviewStats(projectId, range = '-24h') {
   return fetchAPI('/api/metrics/overview', { projectId, range });
 }
@@ -95,6 +127,14 @@ export function getRPMData(projectId, range = '-30m') {
 
 export function getResponseTimeData(projectId, range = '-30m') {
   return fetchAPI('/api/metrics/response-time', { projectId, range });
+}
+
+export function getLatencyPercentiles(projectId, range = '-30m') {
+  return fetchAPI('/api/metrics/latency-percentiles', { projectId, range });
+}
+
+export function getApdexScore(projectId, range = '-24h', targetMs = 200) {
+  return fetchAPI('/api/metrics/apdex', { projectId, range, targetMs });
 }
 
 export function getEndpoints(projectId, range = '-24h') {
@@ -143,6 +183,15 @@ export function loginUser(email, password) {
 
 export function getMe() {
   return fetchAPI('/api/auth/me');
+}
+
+/**
+ * Authenticate with Google.
+ * credential — the ID token string from @react-oauth/google's onSuccess callback.
+ * Returns { token, user } just like loginUser().
+ */
+export function googleAuth(credential) {
+  return mutateAPI('/api/auth/google', 'POST', { credential });
 }
 
 // ── Projects API functions ──

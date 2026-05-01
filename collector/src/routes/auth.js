@@ -1,17 +1,20 @@
 'use strict';
 
 const express = require('express');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { hashPassword, comparePassword, generateToken } = require('../services/auth');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * Auth API Routes
- * 
- * POST /api/auth/register  — Create new user
- * POST /api/auth/login     — Login and get JWT
+ *
+ * POST /api/auth/register  — Create new user (email + password)
+ * POST /api/auth/login     — Login and get JWT (email + password)
+ * POST /api/auth/google    — Sign in / register via Google OAuth
  * GET  /api/auth/me        — Get current user (protected)
  */
 
@@ -130,6 +133,100 @@ router.get('/me', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('[Lantern] GET /api/auth/me error:', err.message);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
+ * POST /api/auth/google
+ * Body: { credential }  — the Google ID token from the frontend
+ *
+ * Flow:
+ *   1. Verify Google ID token using google-auth-library
+ *   2. Extract email, name, googleId, avatar from the token payload
+ *   3. Find existing user by googleId OR email
+ *   4. If new user: create account (no password)
+ *   5. If existing email/password user: link their Google account
+ *   6. Return Lantern JWT + user object (same shape as /login)
+ */
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        error: 'Missing credential',
+        message: 'Google ID token is required.',
+      });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(503).json({
+        error: 'Google auth not configured',
+        message: 'GOOGLE_CLIENT_ID is not set on the server.',
+      });
+    }
+
+    // ── 1. Verify the Google ID token ──
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('[Lantern Auth] Google token verification failed:', verifyErr.message);
+      return res.status(401).json({
+        error: 'Invalid Google token',
+        message: 'The Google credential could not be verified. Please try again.',
+      });
+    }
+
+    const { sub: googleId, email, name, picture: avatar } = payload;
+
+    if (!email) {
+      return res.status(400).json({
+        error: 'No email',
+        message: 'Your Google account does not have a verified email address.',
+      });
+    }
+
+    // ── 2. Find or create user ──
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: email.toLowerCase() }],
+    });
+
+    if (user) {
+      // Link Google account if this was previously an email/password user
+      if (!user.googleId) {
+        user.googleId = googleId;
+        if (avatar) user.avatar = avatar;
+        await user.save();
+        console.log(`[Lantern Auth] 🔗 Linked Google account to existing user: ${user.email}`);
+      }
+    } else {
+      // New user — create account without a password
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email: email.toLowerCase(),
+        googleId,
+        avatar: avatar || null,
+        password: null,
+      });
+      console.log(`[Lantern Auth] ✅ New Google user registered: ${user.email}`);
+    }
+
+    // ── 3. Issue Lantern JWT ──
+    const token = generateToken(user);
+
+    console.log(`[Lantern Auth] ✅ Google sign-in: ${user.email}`);
+    res.json({
+      token,
+      user: user.toJSON(),
+    });
+  } catch (err) {
+    console.error('[Lantern] POST /api/auth/google error:', err.message);
+    res.status(500).json({ error: 'Google authentication failed' });
   }
 });
 

@@ -1,5 +1,6 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import GoogleAuthProvider from '@/components/GoogleAuthProvider';
 
 export const metadata = {
   title: 'Lantern APM — Application Performance Monitoring',
@@ -10,9 +11,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <GoogleAuthProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

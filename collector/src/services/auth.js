@@ -10,9 +10,9 @@ const jwt = require('jsonwebtoken');
  * generation/verification for dashboard authentication.
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'lantern-dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET; // No default — validated at startup in index.js
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
-const SALT_ROUNDS = 10;
+const SALT_ROUNDS = 12; // OWASP minimum recommendation for bcrypt
 
 /**
  * Hash a plain-text password with bcrypt.

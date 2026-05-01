@@ -4,9 +4,11 @@ const mongoose = require('mongoose');
 
 /**
  * User Model
- * 
+ *
  * Dashboard users who can create projects and view metrics.
- * Passwords are stored as bcrypt hashes — never plain text.
+ * Supports two auth methods:
+ *   1. Email + Password  (password is bcrypt-hashed, googleId is null)
+ *   2. Google OAuth      (password is null, googleId is the Google sub)
  */
 const userSchema = new mongoose.Schema({
   name: {
@@ -25,10 +27,25 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
   },
 
+  // Null for Google OAuth users
   password: {
     type: String,
-    required: true,
+    required: false,
+    default: null,
     minlength: 6,
+  },
+
+  // Google OAuth fields — null for email/password users
+  googleId: {
+    type: String,
+    default: null,
+    index: true,
+    sparse: true, // allows multiple null values in unique index
+  },
+
+  avatar: {
+    type: String,
+    default: null,
   },
 
   createdAt: {

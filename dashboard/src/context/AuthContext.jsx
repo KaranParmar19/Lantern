@@ -31,9 +31,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Validate token and load user data
-  const validateSession = async (t) => {
+  // Retries once after 3s in case the collector just restarted.
+  const validateSession = async (t, isRetry = false) => {
     try {
-      // Temporarily set token for API calls
       localStorage.setItem('lantern_token', t);
       const userData = await getMe();
       setUser(userData);
@@ -53,11 +53,27 @@ export function AuthProvider({ children }) {
         setActiveProject(projectsData[0]);
       }
     } catch (err) {
-      console.error('[Auth] Session validation failed:', err);
-      localStorage.removeItem('lantern_token');
-      localStorage.removeItem('lantern_user');
-      setUser(null);
-      setToken(null);
+      // ── Network error: collector is temporarily down ──
+      // DO NOT clear the token — the user is still valid.
+      // Retry once after 3 seconds (covers collector restart window).
+      if (err.isNetworkError) {
+        console.warn('[Auth] Collector unreachable during session check.', isRetry ? 'Giving up.' : 'Retrying in 3s...');
+        if (!isRetry) {
+          setTimeout(() => validateSession(t, true), 3000);
+          return; // Don't call setLoading(false) yet — retry will do it
+        }
+        // After retry also failed: stay logged-in with token but no user data yet.
+        // The UI will show a loading state; user is NOT logged out.
+        setToken(t);
+        console.error('[Auth] Collector still unreachable after retry. Dashboard may show stale state.');
+      } else {
+        // ── Auth error: token is invalid / expired → log out ──
+        console.error('[Auth] Session invalid:', err.message);
+        localStorage.removeItem('lantern_token');
+        localStorage.removeItem('lantern_user');
+        setUser(null);
+        setToken(null);
+      }
     } finally {
       setLoading(false);
     }
