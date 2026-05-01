@@ -117,12 +117,9 @@ async function start() {
     await mongoose.connect(MONGODB_URI);
     console.log(`[Lantern] ✅ MongoDB connected (${MONGODB_URI})`);
 
-    // 2. Start BullMQ worker (pass Socket.IO instance for broadcasting)
-    startMetricsWorker(io, {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      maxRetriesPerRequest: null,
-    });
+    // 2. Start BullMQ worker — reuse the shared redisConfig from queue.js
+    // (includes TLS + password for Upstash in production)
+    startMetricsWorker(io, redisConfig);
 
     // 3. Start HTTP server
     server.on('error', (err) => {
