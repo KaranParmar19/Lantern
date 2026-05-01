@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Mail, Lock, ArrowRight } from 'lucide-react';
-import { loginUser } from '@/lib/api';
+import { GoogleLogin } from '@react-oauth/google';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { loginUser, googleAuth } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
@@ -14,20 +15,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (!loading && isAuthenticated) router.push('/dashboard'); }, [loading, isAuthenticated, router]);
 
+  // Email + password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSubmitting(true);
     try {
       const { token, user } = await loginUser(email, password);
-      login(token, user); router.push('/dashboard');
-    } catch (err) { setError(err.message || 'Login failed. Please check your credentials.'); }
-    finally { setSubmitting(false); }
+      login(token, user);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Google Sign-In
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError(''); setGoogleLoading(true);
+    try {
+      const { token, user } = await googleAuth(credentialResponse.credential);
+      login(token, user);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in was cancelled or failed. Please try again.');
+  };
+
+  const googleEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="loading-spinner" /></div>;
 
@@ -76,15 +103,56 @@ export default function LoginPage() {
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px',
         opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(12px)', transition: 'all 0.5s ease-out',
       }}>
-        <div style={{ width: '100%', maxWidth: '380px' }}>
+        <div style={{ width: '100%', maxWidth: '380px', position: 'relative' }}>
+          <Link href="/" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)',
+            fontWeight: 500, marginBottom: '32px', transition: 'color 0.2s', textDecoration: 'none'
+          }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+            <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Back to home
+          </Link>
+
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Welcome back</h1>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}>Sign in to your dashboard</p>
 
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div className="warning-banner error" style={{ marginBottom: '20px' }}>{error}</div>
-            )}
+          {error && (
+            <div className="warning-banner error" style={{ marginBottom: '20px' }}>{error}</div>
+          )}
 
+          {/* ── Google Sign-In ── */}
+          {googleEnabled && (
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex', justifyContent: 'center',
+                filter: googleLoading ? 'opacity(0.6)' : 'none',
+                pointerEvents: googleLoading ? 'none' : 'auto',
+                transition: 'filter 0.2s',
+              }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  shape="rectangular"
+                  size="large"
+                  text="signin_with"
+                  width="340"
+                />
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0',
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  or sign in with email
+                </span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              </div>
+            </div>
+          )}
+
+          {/* ── Email / Password Form ── */}
+          <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Mail size={11} /> Email

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GoogleLogin } from '@react-oauth/google';
 import { Rocket, User, Mail, Lock, ArrowRight, Terminal } from 'lucide-react';
-import { registerUser } from '@/lib/api';
+import { registerUser, googleAuth } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -30,6 +32,26 @@ export default function RegisterPage() {
     } catch (err) { setError(err.message || 'Registration failed.'); }
     finally { setSubmitting(false); }
   };
+
+  // Google Sign-In / Register
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError(''); setGoogleLoading(true);
+    try {
+      const { token, user } = await googleAuth(credentialResponse.credential);
+      login(token, user);
+      router.push('/dashboard/projects');
+    } catch (err) {
+      setError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in was cancelled or failed. Please try again.');
+  };
+
+  const googleEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   // Password strength
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
@@ -85,15 +107,49 @@ export default function RegisterPage() {
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px',
         opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(12px)', transition: 'all 0.5s ease-out',
       }}>
-        <div style={{ width: '100%', maxWidth: '380px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Create your account</h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}>Start monitoring your Node.js apps</p>
+        <div style={{ width: '100%', maxWidth: '380px', position: 'relative' }}>
+          <Link href="/" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)',
+            fontWeight: 500, marginBottom: '32px', transition: 'color 0.2s', textDecoration: 'none'
+          }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+            <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Back to home
+          </Link>
+
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Create an account</h1>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}>Start monitoring your Node.js apps today.</p>
+
+          {error && (
+            <div className="warning-banner error" style={{ marginBottom: '20px' }}>{error}</div>
+          )}
+
+          {/* ── Google Sign-Up ── */}
+          {googleEnabled && (
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex', justifyContent: 'center',
+                filter: googleLoading ? 'opacity(0.6)' : 'none',
+                pointerEvents: googleLoading ? 'none' : 'auto',
+                transition: 'filter 0.2s',
+              }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  shape="rectangular"
+                  size="large"
+                  text="signup_with"
+                  width="340"
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0' }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>or register with email</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
-            {error && (
-              <div className="warning-banner error" style={{ marginBottom: '20px' }}>{error}</div>
-            )}
-
             <div style={{ marginBottom: '18px' }}>
               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <User size={11} /> Full Name
