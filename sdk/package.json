@@ -1,7 +1,7 @@
 {
-  "name": "lantern-apm",
-  "version": "1.0.0",
-  "description": "Lightweight, zero-dependency APM SDK for Node.js & Express — capture request metrics, system health, and errors with 2 lines of code.",
+  "name": "@lantern-apm/sdk",
+  "version": "1.0.1",
+  "description": "Lightweight, zero-dependency APM SDK for Node.js & Express",
   "main": "src/index.js",
   "scripts": {
     "test": "node test/dummy-app.js"

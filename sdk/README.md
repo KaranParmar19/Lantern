@@ -9,19 +9,19 @@ Add 2 lines of code. See everything about your app's health — response times, 
 ## ⚡ Quick Start
 
 ```bash
-npm install lantern-apm
+npm install @lantern-apm/sdk
 ```
 
 ```js
 const express = require('express');
-const lantern = require('lantern-apm');
+const lantern = require('@lantern-apm/sdk');
 
 const app = express();
 
 // 1. Initialize with your project key and collector URL
 lantern.init({
   projectKey: 'ltrn_live_xxxxxxxxxxxx',
-  collectorURL: 'https://your-collector.onrender.com',
+  collectorURL: 'https://lantern-collector.onrender.com',
 });
 
 // 2. Add the middleware — that's it!

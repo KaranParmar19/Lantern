@@ -135,7 +135,7 @@ npm run dev
 
 ### 5. Register & Create a Project
 
-1. Open `http://localhost:3000`
+1. Open `https://lantern-dashboard.onrender.com`
 2. Click **"Get Started"** → Register an account
 3. Go to **Projects** → Create a new project
 4. Copy the generated **API key**
@@ -144,18 +144,23 @@ npm run dev
 
 ```bash
 cd your-node-app
-npm install /path/to/Lantern/sdk
+npm install @lantern-apm/sdk
 ```
 
 Add to the top of your Express app:
 
 ```javascript
 const lantern = require('@lantern-apm/sdk');
-lantern.init({ projectKey: 'ltrn_live_your_key_here' });
+
+lantern.init({ 
+  projectKey: 'ltrn_live_your_key_here',
+  collectorURL: 'https://lantern-collector.onrender.com' 
+});
 
 const express = require('express');
 const app = express();
 
+// 🚨 Must be BEFORE your routes!
 app.use(lantern.middleware());
 
 // ... your routes
@@ -163,7 +168,7 @@ app.use(lantern.middleware());
 
 ### 7. Watch the Metrics Flow 🎉
 
-Open `http://localhost:3000/dashboard` — you'll see live data within seconds.
+Open `https://lantern-dashboard.onrender.com/dashboard` — you'll see live data within seconds.
 
 ---
 
