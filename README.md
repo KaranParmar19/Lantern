@@ -9,23 +9,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-🚧_Work_In_Progress-orange?style=for-the-badge" alt="WIP Badge" />
   <img src="https://img.shields.io/badge/node-%3E%3D18-green?style=for-the-badge&logo=node.js" alt="Node.js" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/self--hosted-yes-purple?style=for-the-badge" alt="Self Hosted" />
 </p>
 
 ---
-
-> **⚠️ Active Development — Not Production-Ready Yet**
->
-> Lantern APM is currently in active development. Core features like real-time metrics ingestion, the dashboard UI, alerting, and the SDK are being built and iterated on. Some features may be incomplete, have rough edges, or change significantly.
->
-> **What's working:** Landing page, auth system, project management, SDK metric collection, real-time dashboard with charts, error tracking, system health monitoring, alert configuration.
->
-> **What's in progress:** Alert email delivery, historical data views, deployment guides, SDK publishing to npm.
->
-> If you're a recruiter or visitor — thanks for checking this out! This project demonstrates full-stack architecture skills including real-time systems, time-series databases, message queues, and modern frontend design. Star ⭐ the repo to follow progress!
 
 ---
 
