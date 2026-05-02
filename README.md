@@ -87,71 +87,28 @@ Monitor your APIs in real-time. Track response times, catch errors, and watch sy
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 1. Register & Create a Project
 
-- **Node.js** ≥ 18
-- **Docker Desktop** (for InfluxDB, MongoDB, Redis)
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/KaranParmar19/Lantern.git
-cd Lantern
-
-# Install collector dependencies
-cd collector && npm install
-
-# Install dashboard dependencies
-cd ../dashboard && npm install
-```
-
-### 2. Start Infrastructure
-
-```bash
-# From the root directory
-docker-compose up -d
-```
-
-This starts:
-- **InfluxDB** — Time-series metrics storage (port 8086)
-- **MongoDB** — Projects, users, alerts (port 27017)
-- **Redis** — Metrics queue (port 6379)
-
-### 3. Start the Collector
-
-```bash
-cd collector
-npm run dev
-# ✅ Collector running on http://localhost:4000
-```
-
-### 4. Start the Dashboard
-
-```bash
-cd dashboard
-npm run dev
-# ✅ Dashboard running on http://localhost:3000
-```
-
-### 5. Register & Create a Project
-
-1. Open `https://lantern-dashboard.onrender.com`
+1. Open **[Lantern Dashboard](https://lantern-dashboard.onrender.com)**
 2. Click **"Get Started"** → Register an account
 3. Go to **Projects** → Create a new project
 4. Copy the generated **API key**
 
-### 6. Instrument Your App
+### 2. Install the SDK
 
 ```bash
 cd your-node-app
 npm install @lantern-apm/sdk
 ```
 
-Add to the top of your Express app:
+### 3. Instrument Your App
+
+Add the following to the top of your Express app:
 
 ```javascript
 const lantern = require('@lantern-apm/sdk');
 
+// 1. Initialize with your live project key and collector URL
 lantern.init({ 
   projectKey: 'ltrn_live_your_key_here',
   collectorURL: 'https://lantern-collector.onrender.com' 
@@ -160,15 +117,20 @@ lantern.init({
 const express = require('express');
 const app = express();
 
-// 🚨 Must be BEFORE your routes!
+// 2. Add the middleware (🚨 Must be BEFORE your routes!)
 app.use(lantern.middleware());
 
 // ... your routes
+app.get('/api/users', (req, res) => {
+  res.json({ users: [] });
+});
+
+app.listen(3000);
 ```
 
-### 7. Watch the Metrics Flow 🎉
+### 4. Watch the Metrics Flow 🎉
 
-Open `https://lantern-dashboard.onrender.com/dashboard` — you'll see live data within seconds.
+Open `https://lantern-dashboard.onrender.com/dashboard` — you'll see your live metrics flowing in within seconds!
 
 ---
 
@@ -236,11 +198,11 @@ Lantern/
 
 ```javascript
 lantern.init({
-  projectKey: 'ltrn_live_...',           // Required — from dashboard
-  collectorURL: 'http://localhost:4000',  // Collector endpoint
-  flushInterval: 10000,                   // Flush metrics every N ms
-  systemMetricsInterval: 30000,           // System metrics collection interval
-  debug: false,                           // Enable console logging
+  projectKey: 'ltrn_live_...',                             // Required — from dashboard
+  collectorURL: 'https://lantern-collector.onrender.com',  // Collector endpoint
+  flushInterval: 5000,                                     // Flush metrics every N ms
+  systemMetricsInterval: 30000,                            // System metrics collection interval
+  debug: false,                                            // Enable console logging
 });
 ```
 
